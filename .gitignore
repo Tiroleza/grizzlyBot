@@ -1,4 +1,9 @@
-.env
+<<<<<<< HEAD
+# Seu conteúdo local
 __pycache__/
-*.pyc
-.DS_Store
+.env
+=======
+# Conteúdo do GitHub
+node_modules/
+venv/
+>>>>>>> main
