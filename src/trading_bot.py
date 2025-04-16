@@ -91,7 +91,7 @@ class BinanceSimulator:
         self._log_start()
 
     def _setup_config(self):
-        self.symbol = "OMUSDT"
+        self.symbol = "BNBUSDT"
         self.interval = Client.KLINE_INTERVAL_1MINUTE
         self.risk_per_trade = 0.04
         self.min_distance_pct = 0.2
