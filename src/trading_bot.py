@@ -8,7 +8,7 @@ import pandas as pd
 import requests
 
 from binance.client import Client
-from binance.enums import *
+
 from dotenv import load_dotenv
 
 # Configuração inicial
@@ -27,7 +27,7 @@ class TelegramNotifier:
             try:
                 with open("authorized_ids.json", "r") as f:
                     return json.load(f)
-            except:
+            except (FileNotFoundError, json.JSONDecodeError):
                 return []
         self.authorized_ids = load_authorized_ids()
     
@@ -79,9 +79,10 @@ class BinanceSimulator:
         self.symbol = "SOLBRL"
         self.interval = Client.KLINE_INTERVAL_1MINUTE
         self.risk_per_trade = 0.04  # 4% do capital por trade
+        self.initial_balance = 30000  # Saldo inicial em BRL
         
         # Estado da simulação
-        self.balance = 30000  # Saldo inicial em BRL
+        self.balance = self.initial_balance
         self.position = 0  # Quantidade de cripto
         self.entry_price = 0  # Preço médio de entrada
         self.trade_history = []
@@ -123,7 +124,7 @@ class BinanceSimulator:
             candles = self.client.get_klines(
                 symbol=self.symbol,
                 interval=self.interval,
-                limit=100
+                limit=250
             )
             
             df = pd.DataFrame(candles, columns=[
@@ -320,8 +321,7 @@ class BinanceSimulator:
 
                 # Relatório completo da carteira após venda
                 portfolio_value = self.balance  # Agora só temos saldo em BRL
-                initial_balance = 3000  # Saldo inicial
-                pl_percent = ((portfolio_value - initial_balance) / initial_balance) * 100
+                pl_percent = ((portfolio_value - self.initial_balance) / self.initial_balance) * 100
                 
                 msg = (
                     f"🔴 <b>VENDA Simulada</b>\n"
@@ -366,14 +366,16 @@ class BinanceSimulator:
                 # 2. Verificar stop-loss
                 if self.position > 0 and self.check_stop_loss():
                     print("⚠️ Stop-loss atingido, vendendo posição...")
+                    stop_entry = self.entry_price  # Salvar antes do reset
+                    stop_loss_pct = 100 * (self.current_price / stop_entry - 1)
                     self.simulate_trade("SELL")
                     self.plot_chart(market_data)  # Gráfico na venda por stop
                     self.telegram.send_photo(
                         caption=f"🛑 <b>STOP-LOSS ATINGIDO</b>\n"
                            f"▪️ Par: {self.symbol}\n"
                            f"▪️ Preço: BRL {self.current_price:.2f}\n"
-                           f"▪️ Preço Entrada: BRL {self.entry_price:.2f}\n"
-                           f"▪️ Perda: {100*(self.current_price/self.entry_price-1):.2f}%",
+                           f"▪️ Preço Entrada: BRL {stop_entry:.2f}\n"
+                           f"▪️ Perda: {stop_loss_pct:.2f}%",
                         image_path="grafico.png"
                     )
             
@@ -397,7 +399,9 @@ class BinanceSimulator:
                         )
             
                 elif sell_signal and self.position > 0:
-                    profit_pct = 100 * (self.current_price - self.entry_price) / self.entry_price
+                    sell_entry = self.entry_price  # Salvar antes do reset
+                    profit_pct = 100 * (self.current_price - sell_entry) / sell_entry
+                    sell_reason = "Tendência revertida" if not buy_signal else "Stop dinâmico"
                     self.simulate_trade("SELL")
                     self.plot_chart(market_data)  # Gráfico na venda também
                     self.telegram.send_photo(
@@ -405,9 +409,9 @@ class BinanceSimulator:
                             f"📉 <b>GRÁFICO DE VENDA</b>\n"
                             f"▪️ Par: {self.symbol}\n"
                             f"▪️ Preço: BRL {self.current_price:.2f}\n"
-                            f"▪️ Preço Entrada: BRL {self.entry_price:.2f}\n"
+                            f"▪️ Preço Entrada: BRL {sell_entry:.2f}\n"
                             f"▪️ Resultado: {profit_pct:.2f}%\n"
-                            f"▪️ Motivo: {'Tendência revertida' if not trend_up_now else 'Stop dinâmico'}"
+                            f"▪️ Motivo: {sell_reason}"
                         ),
                         image_path="grafico.png"
                     )
