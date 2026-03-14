@@ -1,0 +1,7 @@
+__pycache__/
+.env
+node_modules/
+venv/
+*.log
+authorized_ids.json
+grafico.png
