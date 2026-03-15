@@ -1,4 +1,4 @@
-# 🐻 grizzlyBot
+# 🐻 grizzly-bot
 
 Bot de trading automatizado para criptomoedas na Binance com notificações via Telegram.  
 Opera em modo **simulado** — consulta dados reais do mercado e executa operações fictícias para validação de estratégias sem risco financeiro.
